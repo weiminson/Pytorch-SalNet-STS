@@ -10,6 +10,8 @@ from torch.utils.data import DataLoader, Dataset
 from torch.utils.data.sampler import Sampler
 
 
+# Task generator fits STS dataset
+
 def imshow(img):
     npimg = img.numpy()
     plt.axis("off")
