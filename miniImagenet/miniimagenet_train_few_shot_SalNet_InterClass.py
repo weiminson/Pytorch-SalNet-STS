@@ -1,18 +1,18 @@
+import argparse
+import math
+import os
+import time
+
+import models
+import numpy as np
+import scipy as sp
+import scipy.stats
+import task_generator as tg
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.optim.lr_scheduler import StepLR
-import torchvision
-import numpy as np
-import task_generator as tg
-import os
-import math
-import argparse
-import scipy as sp
-import scipy.stats
-import time
-import models
 
 parser = argparse.ArgumentParser(description="One Shot Visual Recognition")
 parser.add_argument("-f","--feature_dim",type = int, default = 64)
@@ -28,6 +28,8 @@ parser.add_argument("-u","--hidden_unit",type=int,default=10)
 parser.add_argument("-sigma","--sigma", type = float, default = 150)
 parser.add_argument("-beta","--beta", type = float, default = 0.2)
 parser.add_argument("-alpha","--alpha", type = float, default = 1)
+parser.add_argument("-o","--output_dir", type = str, default = './results')
+parser.add_argument("-d","--dataset", type = str, default = 'miniImagenet')
 args = parser.parse_args()
 
 # Hyper Parameters
@@ -43,6 +45,11 @@ LEARNING_RATE = args.learning_rate
 GPU = args.gpu
 HIDDEN_UNIT = args.hidden_unit
 SIGMA = args.sigma
+DATASET = args.dataset
+result_dir = '{}/{}'.format(args.output_dir, DATASET)
+configs = '{}way_{}shot_{}'.format(CLASS_NUM, SUPPORT_NUM_PER_CLASS, METHOD)
+train_folder = '../datas/{}/trainval'.format(DATASET) # 'trainval' or 'train'
+test_folder = '../datas/{}/test'.format(DATASET) # 'test' or 'val
 
 def similarity_func(x,c,s):
 	#x: cxsx(cxs)x64x19x19
@@ -279,6 +286,14 @@ def main():
                 torch.save(relation_network.state_dict(),str(METHOD + "/miniImagenet_relation_network_"+ str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl"))
                 print("save networks for episode:",episode)
                 best_accuracy = test_accuracy
+                best_h = h
+                if not os.path.exists(result_dir):
+                    os.mkdir(result_dir)
+                    print('The results are filed to : {}'.format(result_dir))
+                cmd = 'episode: {}\nbest accuracy: {}\nbest_h: {}'.format(episode, best_accuracy, best_h)
+                cmd = 'echo "%s" > %s/%s.txt'%(cmd, result_dir, configs)
+                print(cmd)
+                os.system(cmd)
             print("best accuracy:",best_accuracy)
 if __name__ == '__main__':
     main()

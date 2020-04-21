@@ -6,7 +6,6 @@ import models
 import numpy as np
 import scipy as sp
 import scipy.stats
-import task_generator as tg
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -27,8 +26,8 @@ parser.add_argument("-u","--hidden_unit",type=int,default=10)
 parser.add_argument("-sigma","--sigma", type = float, default = 150)
 parser.add_argument("-beta","--beta", type = float, default = 0.01)
 parser.add_argument("-o","--output_dir", type = str, default = './results')
+parser.add_argument("-d","--dataset", type = str, default = 'miniImagenet')
 args = parser.parse_args()
-
 
 # Hyper Parameters
 METHOD = "SalNet_IntraClass"
@@ -43,8 +42,20 @@ LEARNING_RATE = args.learning_rate
 GPU = args.gpu
 HIDDEN_UNIT = args.hidden_unit
 SIGMA = args.sigma
-result_dir = args.output_di
+DATASET = args.dataset
+result_dir = '{}/{}'.format(args.output_dir, DATASET)
+if not os.path.exists(result_dir):
+    os.mkdir(result_dir)
+    print('result_dir created: {}'.format(result_dir))
 configs = '{}way_{}shot_{}'.format(CLASS_NUM, SUPPORT_NUM_PER_CLASS, METHOD)
+train_folder = '../data/{}/trainval'.format(DATASET) # 'trainval' or 'train'
+test_folder = '../data/{}/test'.format(DATASET) # 'test' or 'val'
+
+if DATASET == 'miniImagenet':
+    import task_generator as tg
+elif DATASET == 'STS':
+    import task_generator_STS as tg
+
 
 def power_norm(x, SIGMA):
 	out = 2*F.sigmoid(SIGMA*x) - 1
@@ -96,28 +107,28 @@ def main():
     relation_network_scheduler = StepLR(relation_network_optim,step_size=100000,gamma=0.5)
 	
     # Loading models
-    if os.path.exists(str(METHOD + "/miniImagenet_foreground_encoder_" + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")):
-        foreground_encoder.load_state_dict(torch.load(str(METHOD + "/miniImagenet_foreground_encoder_" + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")))
+    if os.path.exists(str(METHOD + "/{}_foreground_encoder_".format(DATASET) + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")):
+        foreground_encoder.load_state_dict(torch.load(str(METHOD + "/{}_foreground_encoder_".format(DATASET) + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")))
         print("load foreground encoder success")
-    if os.path.exists(str(METHOD + "/miniImagenet_background_encoder_" + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")):
-        background_encoder.load_state_dict(torch.load(str(METHOD + "/miniImagenet_background_encoder_" + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")))
+    if os.path.exists(str(METHOD + "/{}_background_encoder_".format(DATASET) + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")):
+        background_encoder.load_state_dict(torch.load(str(METHOD + "/{}_background_encoder_".format(DATASET) + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")))
         print("load background encoder success")        
-    if os.path.exists(str(METHOD + "/miniImagenet_mixture_network_" + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")):
-        mixture_network.load_state_dict(torch.load(str(METHOD + "/miniImagenet_mixture_network_" + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")))
+    if os.path.exists(str(METHOD + "/{}_mixture_network_".format(DATASET) + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")):
+        mixture_network.load_state_dict(torch.load(str(METHOD + "/{}_mixture_network_".format(DATASET) + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")))
         print("load mixture network success")
-    if os.path.exists(str(METHOD + "/miniImagenet_relation_network_"+ str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")):
-        relation_network.load_state_dict(torch.load(str(METHOD + "/miniImagenet_relation_network_"+ str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")))
+    if os.path.exists(str(METHOD + "/{}_relation_network_".format(DATASET)+ str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")):
+        relation_network.load_state_dict(torch.load(str(METHOD + "/{}_relation_network_".format(DATASET) + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")))
         print("load relation network success")
         
     # Loading vanilla models    
-    if os.path.exists(str("./vanilla_models/miniImagenet_foreground_encoder_" + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")):
-        vanilla_foreground_encoder.load_state_dict(torch.load(str("./vanilla_models/miniImagenet_foreground_encoder_" + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")))
+    if os.path.exists(str("./vanilla_models/{}_foreground_encoder_".format(DATASET) + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")):
+        vanilla_foreground_encoder.load_state_dict(torch.load(str("./vanilla_models/{}_foreground_encoder_".format(DATASET) + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")))
         print("load vanilla foreground encoder success")
-    if os.path.exists(str("./vanilla_models/miniImagenet_background_encoder_" + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")):
-        vanilla_background_encoder.load_state_dict(torch.load(str("./vanilla_models/miniImagenet_background_encoder_" + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")))
+    if os.path.exists(str("./vanilla_models/{}_background_encoder_".format(DATASET) + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")):
+        vanilla_background_encoder.load_state_dict(torch.load(str("./vanilla_models/{}_background_encoder_".format(DATASET) + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")))
         print("load vanilla background encoder success")        
-    if os.path.exists(str("./vanilla_models/miniImagenet_mixture_network_" + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")):
-        vanilla_mixture_network.load_state_dict(torch.load(str("./vanilla_models/miniImagenet_mixture_network_" + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")))
+    if os.path.exists(str("./vanilla_models/{}_mixture_network_".format(DATASET) + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")):
+        vanilla_mixture_network.load_state_dict(torch.load(str("./vanilla_models/{}_mixture_network_".format(DATASET) + str(CLASS_NUM) +"way_" + str(SUPPORT_NUM_PER_CLASS) +"shot.pkl")))
         print("load vanilla mixture network success")        
     if os.path.exists(METHOD) == False:
         os.system('mkdir ' + METHOD)
@@ -139,7 +150,7 @@ def main():
         support_dataloader = tg.get_mini_imagenet_data_loader(task,num_per_class=SUPPORT_NUM_PER_CLASS,split="train",shuffle=False)
         query_dataloader = tg.get_mini_imagenet_data_loader(task,num_per_class=QUERY_NUM_PER_CLASS,split="test",shuffle=True)
 
-        # support datas
+        # support data
         support_img,support_sal,support_labels = support_dataloader.__iter__().next()
         query_img,query_sal,query_labels = query_dataloader.__iter__().next()
         

@@ -1,14 +1,14 @@
-import torchvision
-import torchvision.datasets as dset
-import torchvision.transforms as transforms
-import torch
-from torch.utils.data import DataLoader,Dataset
-import random
 import os
-from PIL import Image
+import random
+
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
+import torchvision.transforms as transforms
+from PIL import Image
+from torch.utils.data import DataLoader, Dataset
 from torch.utils.data.sampler import Sampler
+
 
 def imshow(img):
     npimg = img.numpy()
@@ -24,8 +24,8 @@ class Rotate(object):
         return x
 
 def mini_imagenet_folders():
-    train_folder = '../datas/miniImagenet/trainval' # 'trainval' or 'train'
-    test_folder = '../datas/miniImagenet/test' # 'test' or 'val'
+    train_folder = '../data/miniImagenet/trainval' # 'trainval' or 'train'
+    test_folder = '../data/miniImagenet/test' # 'test' or 'val'
 
     metatrain_folders = [os.path.join(train_folder, label) \
                 for label in os.listdir(train_folder) \
@@ -98,7 +98,7 @@ class MiniImagenet(FewShotDataset):
     def __getitem__(self, idx):
         image_root = self.image_roots[idx]
         image_name = image_root.split('/')[-1].split('.')[0]
-        saliency_root = "../datas/miniImagenet/saliency_maps/" + image_name + '.jpg'
+        saliency_root = "../data/miniImagenet/saliency_maps/" + image_name + '.jpg'
         image = Image.open(image_root).convert('RGB')
         saliency_map = transforms.ToTensor()(transforms.Resize([84,84])(Image.open(saliency_root).convert('L')))
         #print(saliency_map)

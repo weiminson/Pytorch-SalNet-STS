@@ -1,18 +1,15 @@
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.autograd import Variable
-from torch.optim.lr_scheduler import StepLR
-import torchvision
-import numpy as np
-import task_generator_test as tg
-import os
-import math
 import argparse
+import math
+import os
+
+import models
+import numpy as np
 import scipy as sp
 import scipy.stats
-import time
-import models
+import task_generator_test as tg
+import torch
+import torch.nn.functional as F
+from torch.autograd import Variable
 
 parser = argparse.ArgumentParser(description="One Shot Visual Recognition")
 parser.add_argument("-f","--feature_dim",type = int, default = 64)
@@ -27,6 +24,7 @@ parser.add_argument("-g","--gpu",type=int, default=0)
 parser.add_argument("-u","--hidden_unit",type=int,default=10)
 parser.add_argument("-sigma","--sigma", type = float, default = 150)
 parser.add_argument("-beta","--beta", type = float, default = 0.01)
+parser.add_argument("-o","--output_dir", type = str, default = './results')
 args = parser.parse_args()
 
 
@@ -43,6 +41,8 @@ LEARNING_RATE = args.learning_rate
 GPU = args.gpu
 HIDDEN_UNIT = args.hidden_unit
 SIGMA = args.sigma
+result_dir = args.output_dir
+configs = '{}way_{}shot_{}'.format(CLASS_NUM, SUPPORT_NUM_PER_CLASS, METHOD)
 
 def power_norm(x, SIGMA):
 	out = 2*F.sigmoid(SIGMA*x) - 1
@@ -155,6 +155,10 @@ def main():
                 best_accuracy = test_accuracy
                 best_h = h
             print("best accuracy:",best_accuracy,"h:",best_h)
+            cmd = 'best accuracy: {}\nbest_h: {}'.format(best_accuracy, best_h)
+            cmd = 'echo "%s" > %s/%s.txt'%(cmd, result_dir, configs)
+            print(cmd)
+            os.system(cmd)
             
 if __name__ == '__main__':
     main()

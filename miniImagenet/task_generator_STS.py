@@ -24,9 +24,10 @@ class Rotate(object):
         return x
 
 def mini_imagenet_folders():
-    train_folder = '../datas/miniImagenet/train'
-    test_folder = '../datas/miniImagenet/test'
-
+    #train_folder = '../datas/miniImagenet/trainval' # 'trainval' or 'train'
+    #test_folder = '../datas/miniImagenet/test' # 'test' or 'val'
+    train_folder = '../data/STS/trainval' # 'trainval' or 'train'
+    test_folder = '../data/STS/test' # 'test' or 'val
     metatrain_folders = [os.path.join(train_folder, label) \
                 for label in os.listdir(train_folder) \
                 if os.path.isdir(os.path.join(train_folder, label)) \
@@ -73,6 +74,7 @@ class MiniImagenetTask(object):
     def get_class(self, sample):
         return os.path.join(*sample.split('/')[:-1])
 
+
 class FewShotDataset(Dataset):
 
     def __init__(self, task, split='train', transform=None, target_transform=None):
@@ -97,7 +99,8 @@ class MiniImagenet(FewShotDataset):
     def __getitem__(self, idx):
         image_root = self.image_roots[idx]
         image_name = image_root.split('/')[-1].split('.')[0]
-        saliency_root = "../datas/miniImagenet/saliency_maps/" + image_name + '.jpg'
+       #saliency_root = "../datas/miniImagenet/saliency_maps/" + image_name + '.jpg'
+        saliency_root = "../data/STS/saliency_maps/" + image_name + '.jpg'
         image = Image.open(image_root).convert('RGB')
         saliency_map = transforms.ToTensor()(transforms.Resize([84,84])(Image.open(saliency_root).convert('L')))
         #print(saliency_map)
@@ -110,34 +113,6 @@ class MiniImagenet(FewShotDataset):
 
 
 class ClassBalancedSampler(Sampler):
-    ''' Samples 'num_inst' examples each from 'num_cl' pools
-        of examples of size 'num_per_class' '''
-
-    def __init__(self, num_cl, num_inst,shuffle=True):
-
-        self.num_cl = num_cl
-        self.num_inst = num_inst
-        self.shuffle = shuffle
-
-    def __iter__(self):
-        # return a single list of indices, assuming that items will be grouped by class
-        if self.shuffle:
-            batches = [[i+j*self.num_inst for i in torch.randperm(self.num_inst)] for j in range(self.num_cl)]
-        else:
-            batches = [[i+j*self.num_inst for i in range(self.num_inst)] for j in range(self.num_cl)]
-        batches = [[batches[j][i] for j in range(self.num_cl)] for i in range(self.num_inst)]
-
-        if self.shuffle:
-            random.shuffle(batches)
-            for sublist in batches:
-                   random.shuffle(sublist)
-        batches = [item for sublist in batches for item in sublist]
-        return iter(batches)
-
-    def __len__(self):
-        return 1
-
-class ClassBalancedSamplerOld(Sampler):
     ''' Samples 'num_inst' examples each from 'num_cl' pools
         of examples of size 'num_per_class' '''
 
@@ -167,11 +142,13 @@ def get_mini_imagenet_data_loader(task, num_per_class=1, split='train',shuffle =
     normalize = transforms.Normalize(mean=[0.92206, 0.92206, 0.92206], std=[0.08426, 0.08426, 0.08426])
 
     dataset = MiniImagenet(task,split=split,transform=transforms.Compose([transforms.ToTensor(),normalize]))
-    if split == 'train':
-        sampler = ClassBalancedSamplerOld(num_per_class,task.num_classes, task.train_num,shuffle=shuffle)
 
+    if split == 'train':
+        sampler = ClassBalancedSampler(num_per_class, task.num_classes, task.train_num,shuffle=shuffle)
     else:
-        sampler = ClassBalancedSampler(task.num_classes, task.test_num,shuffle=shuffle)
+        sampler = ClassBalancedSampler(num_per_class, task.num_classes, task.test_num,shuffle=shuffle)
 
     loader = DataLoader(dataset, batch_size=num_per_class*task.num_classes, sampler=sampler)
+
     return loader
+
